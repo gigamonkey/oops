@@ -1,6 +1,7 @@
 all: upload.zip
 
 upload.zip: $(wildcard *.py)
+	rm -f upload.zip
 	zip $@ *.py
 
 clean:
