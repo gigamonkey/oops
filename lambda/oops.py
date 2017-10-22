@@ -2,6 +2,7 @@
 # Lambda functions for the Oops bot.
 #
 
+from urllib.request import urlopen, Request
 import boto3
 import json
 import time
@@ -38,7 +39,15 @@ def oops(event, context):
 
 
 def message_received(event, context):
-    print("message_received invoked")
-    time.sleep(10)
-    print("Done sleeping")
+    print("event_callback")
     print(json.dumps(event))
+    if ('bot_id' not in event['event']) or (event['event']['bot_id'] is None):
+        send_to_general('Hello from AWS.')
+
+
+def send_to_general(text):
+    url = 'REDACTED'
+    headers = { 'Content-type': 'application/json; charset=utf-8' }
+    data = json.dumps({'text': text}).encode('utf-8')
+    with urlopen(Request(url, data = data, headers = headers, method = 'POST')) as f:
+        print(f.getcode())
