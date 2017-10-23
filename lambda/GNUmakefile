@@ -1,8 +1,14 @@
+files := oops.py
+files += config.json
+
+
 all: upload.zip
 
-upload.zip: $(wildcard *.py)
+
+
+upload.zip: $(files)
 	rm -f upload.zip
-	zip $@ *.py
+	zip $@ $(files)
 
 clean:
 	rm -f upload.zip

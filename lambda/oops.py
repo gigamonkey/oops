@@ -7,6 +7,9 @@ import boto3
 import json
 import time
 
+with open('config.json') as f:
+    config = json.load(f)
+
 client = boto3.client('lambda')
 
 def oops(event, context):
@@ -38,7 +41,7 @@ def oops(event, context):
         return "Don't know what to do with {}".format(type)
 
 
-def message_received(event, context):
+def event_callback(event, context):
     print("event_callback")
     print(json.dumps(event))
     if ('bot_id' not in event['event']) or (event['event']['bot_id'] is None):
@@ -46,7 +49,7 @@ def message_received(event, context):
 
 
 def send_to_general(text):
-    url = 'REDACTED'
+    url = config['webhooks']['post_general']
     headers = { 'Content-type': 'application/json; charset=utf-8' }
     data = json.dumps({'text': text}).encode('utf-8')
     with urlopen(Request(url, data = data, headers = headers, method = 'POST')) as f:
