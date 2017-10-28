@@ -2,10 +2,13 @@
 # Lambda functions for the Oops bot.
 #
 
+from urllib.parse import urlencode
 from urllib.request import urlopen, Request
 import boto3
 import json
 import time
+
+slack_url = 'https://slack.com/api/'
 
 with open('config.json') as f:
     config = json.load(f)
@@ -27,7 +30,7 @@ def oops(event, context):
         # return 200 quickly we actually dispatch asynchronously to
         # another Lambda function.
         response = client.invoke(
-            FunctionName='message_received',
+            FunctionName='event_callback',
             InvocationType='Event',
             LogType='None',
             ClientContext='string',
@@ -44,8 +47,23 @@ def oops(event, context):
 def event_callback(event, context):
     print("event_callback")
     print(json.dumps(event))
-    if ('bot_id' not in event['event']) or (event['event']['bot_id'] is None):
-        send_to_general('Hello from AWS.')
+
+    bot = config['bot_user']
+    e = event['event']
+
+    if e['user'] == bot:
+        print("Ignoring message from myself.")
+        return
+
+    if e['type'] == 'message' and text_mentions(e['text'], bot):
+        print('Setting topic.')
+        set_topic("Setting the topic from the bot for {}!".format(e['user']), e['channel'])
+    else:
+        print("Ignoring")
+
+
+def text_mentions(text, user):
+    return text.find('<@{}>'.format(user)) > -1
 
 
 def send_to_general(text):
@@ -54,3 +72,17 @@ def send_to_general(text):
     data = json.dumps({'text': text}).encode('utf-8')
     with urlopen(Request(url, data = data, headers = headers, method = 'POST')) as f:
         print(f.getcode())
+
+
+def set_topic(topic, channel):
+    url = slack_url + 'channels.setTopic'
+    args = {
+        'token': config['oauth-token'],
+        'topic': topic,
+        'channel': channel
+    }
+    data = urlencode(args).encode('utf-8')
+
+    with urlopen(Request(url, data = data, headers = {}, method = 'POST')) as f:
+        print(f.getcode())
+        print(f.read().decode('utf-8'))
