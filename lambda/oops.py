@@ -56,33 +56,35 @@ def event_callback(event, context):
         return
 
     if e['type'] == 'message' and text_mentions(e['text'], bot):
-        print('Setting topic.')
-        set_topic("Setting the topic from the bot for {}!".format(e['user']), e['channel'])
+        if text_contains(e['text'], 'down!'):
+            set_topic("Incident open! Alerted by {}!".format(e['user']), e['channel'])
+        else:
+            post_message('Hello user {}'.format(e['user']), e['channel'])
     else:
         print("Ignoring")
 
 
 def text_mentions(text, user):
-    return text.find('<@{}>'.format(user)) > -1
+    return text_contains(text, '<@{}>'.format(user))
 
 
-def send_to_general(text):
-    url = config['webhooks']['post_general']
-    headers = { 'Content-type': 'application/json; charset=utf-8' }
-    data = json.dumps({'text': text}).encode('utf-8')
-    with urlopen(Request(url, data = data, headers = headers, method = 'POST')) as f:
-        print(f.getcode())
+def text_contains(text, sub):
+    return text.find(sub) > -1
+
+
+def post_message(text, channel):
+    slack('chat.postMessage', {'text': text, 'channel': channel})
 
 
 def set_topic(topic, channel):
-    url = slack_url + 'channels.setTopic'
-    args = {
-        'token': config['oauth-token'],
-        'topic': topic,
-        'channel': channel
-    }
-    data = urlencode(args).encode('utf-8')
+    slack('channels.setTopic', {'topic': topic, 'channel': channel})
 
-    with urlopen(Request(url, data = data, headers = {}, method = 'POST')) as f:
+
+def slack(method, args):
+    url = slack_url + method
+    args['token'] = config['oauth-token']
+    data = urlencode(args).encode('utf-8')
+    print('Invoking Slack API: {}'.format(method))
+    with urlopen(Request(url, data = data, method = 'POST')) as f:
         print(f.getcode())
         print(f.read().decode('utf-8'))
