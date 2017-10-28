@@ -8,8 +8,6 @@ import boto3
 import json
 import time
 
-slack_url = 'https://slack.com/api/'
-
 with open('config.json') as f:
     config = json.load(f)
 
@@ -57,9 +55,9 @@ def event_callback(event, context):
 
     if e['type'] == 'message' and text_mentions(e['text'], bot):
         if text_contains(e['text'], 'down!'):
-            set_topic("Incident open! Alerted by {}!".format(e['user']), e['channel'])
+            set_topic("Incident open! Alerted by <@{}>!".format(e['user']), e['channel'])
         else:
-            post_message('Hello user {}'.format(e['user']), e['channel'])
+            post_message('Hello <@{}>'.format(e['user']), e['channel'])
     else:
         print("Ignoring")
 
@@ -73,18 +71,23 @@ def text_contains(text, sub):
 
 
 def post_message(text, channel):
-    slack('chat.postMessage', {'text': text, 'channel': channel})
+    return slack('chat.postMessage', {'text': text, 'channel': channel})
 
 
 def set_topic(topic, channel):
-    slack('channels.setTopic', {'topic': topic, 'channel': channel})
+    return slack('channels.setTopic', {'topic': topic, 'channel': channel})
+
+
+def users_info(id):
+    return slack('users.info', {'user': me})
 
 
 def slack(method, args):
-    url = slack_url + method
+    url = 'https://slack.com/api/' + method
     args['token'] = config['oauth-token']
     data = urlencode(args).encode('utf-8')
     print('Invoking Slack API: {}'.format(method))
     with urlopen(Request(url, data = data, method = 'POST')) as f:
-        print(f.getcode())
-        print(f.read().decode('utf-8'))
+        text = f.read().decode('utf-8')
+        print(text)
+        return json.loads(text) if f.getcode() == 200 else None
